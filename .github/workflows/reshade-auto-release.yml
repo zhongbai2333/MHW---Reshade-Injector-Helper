@@ -30,7 +30,8 @@ jobs:
           else{$all=gh api repos/crosire/reshade/tags --paginate --jq '.[].name'|%{if($_ -match '^v(\d+\.\d+\.\d+)$'){[pscustomobject]@{T=$Matches[1];V=[version]$Matches[1]}}};$v=($all|sort V -Descending|select -First 1).T}
           if(-not$v){throw 'No stable version found'}
           $tag="reshade-v$v";gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null;$skip=$LASTEXITCODE -eq 0
-          "version=$v">>$env:GITHUB_OUTPUT;"tag=$tag">>$env:GITHUB_OUTPUT;"skip=$($skip.ToString().ToLower())">>$env:GITHUB_OUTPUT`n          exit 0
+          "version=$v">>$env:GITHUB_OUTPUT;"tag=$tag">>$env:GITHUB_OUTPUT;"skip=$($skip.ToString().ToLower())">>$env:GITHUB_OUTPUT
+          exit 0
       - name: Download and verify official payload
         if: steps.version.outputs.skip != 'true'
         shell: pwsh
