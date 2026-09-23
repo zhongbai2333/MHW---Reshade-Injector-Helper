@@ -1,0 +1,22 @@
+MHW ReShade Injector Helper 1.3.1
+Bundled ReShade: 6.8.0 (file version 6.8.0.2158)
+Target runtime: .NET Framework 4.8, x64
+
+ReShade64.dll SHA-256:
+B2945C29E7095491A901746B400E58DB9B1592AB092BACF2A888CE37F02D08DA
+
+Official ReShade 6.8.0 installer used to extract the DLL:
+https://reshade.me/downloads/ReShade_Setup_6.8.0.exe
+
+Shader installation:
+Installed into the game directory by the bundled official ReShade 6.8.0 installer.
+No standard shader package is embedded in the helper distribution.
+
+Compatibility:
+- Repairs legacy ProggyClean main-font settings so localized CJK UI text renders correctly.
+- Quarantines the observed crashing DLSS 1.3.2.0 only when DX12 is On and DLSS is Off.
+- Leaves original DLSS 1.1.13 and tested DLSS 1.2.14 untouched.
+- Auto-hides after game startup and exits when the game exits.
+- Optional legacy aspect-ratio memory patch is disabled by default.
+- Supports Steam wrapper launch mode via --from-steam.
+- Preserves the last selected ReShade preset, including game-relative paths.

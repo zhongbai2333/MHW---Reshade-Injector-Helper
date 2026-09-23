@@ -1,4 +1,4 @@
-﻿using MHW___Reshade_Injector_Helper.Constants;
+using MHW___Reshade_Injector_Helper.Constants;
 using MHW___Reshade_Injector_Helper.Models;
 using System;
 using System.IO;
@@ -16,19 +16,15 @@ namespace MHW___Reshade_Injector_Helper.Helpers
 
             do
             {
-                //Clear console and backup the save data
-                Console.Clear();
-
                 BackupSave(settings.SteamDataPath, settings.SteamAppId);
 
-                Console.WriteLine();
-                Console.WriteLine("Awaiting User Input, press ENTER to quit OR press BACKSPACE to reapply aspect ratio patch...");
+                Console.WriteLine("Automatic save backup completed; monitoring continues in the background.");
 
                 //Loop until the desired input is pressed or total wait time is exceeded
                 do
                 {
-                    await Task.Delay(General_CVs.WaitTime);
-                    totalWaitTime.Add(General_CVs.WaitTime);
+                    await Task.Delay(General_CVs.WaitTime, token);
+                    totalWaitTime = totalWaitTime.Add(General_CVs.WaitTime);
                 } while (totalWaitTime < General_CVs.SaveTime && !token.IsCancellationRequested);
 
                 //Reset wait time

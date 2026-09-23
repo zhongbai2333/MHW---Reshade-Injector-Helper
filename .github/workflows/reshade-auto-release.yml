@@ -1,0 +1,84 @@
+name: ReShade auto release
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      reshade_version:
+        description: "Optional stable version, e.g. 6.8.0"
+        required: false
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: reshade-auto-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve stable version
+        id: version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ github.event.inputs.reshade_version }}
+        run: |
+          $requested=$env:REQUESTED.Trim()
+          if($requested){if($requested -notmatch '^\d+\.\d+\.\d+$'){throw 'Bad version'};$v=$requested}
+          else{$all=gh api repos/crosire/reshade/tags --paginate --jq '.[].name'|%{if($_ -match '^v(\d+\.\d+\.\d+)$'){[pscustomobject]@{T=$Matches[1];V=[version]$Matches[1]}}};$v=($all|sort V -Descending|select -First 1).T}
+          if(-not$v){throw 'No stable version found'}
+          $tag="reshade-v$v";gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null;$skip=$LASTEXITCODE -eq 0
+          "version=$v">>$env:GITHUB_OUTPUT;"tag=$tag">>$env:GITHUB_OUTPUT;"skip=$($skip.ToString().ToLower())">>$env:GITHUB_OUTPUT
+      - name: Download and verify official payload
+        if: steps.version.outputs.skip != 'true'
+        shell: pwsh
+        run: .\scripts\Get-ReShadePayload.ps1 -Version "${{ steps.version.outputs.version }}" -Destination ".\MHW - Reshade Injector Helper"
+      - name: Stamp requested ReShade version
+        if: steps.version.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          $v="${{ steps.version.outputs.version }}"
+          $paths=@('.\MHW - Reshade Injector Helper\Helpers\ShaderInstallerHelper.cs','.\MHW - Reshade Injector Helper\Helpers\ReShadeConfigHelper.cs','.\MHW - Reshade Injector Helper\MHW - Reshade Injector Helper.csproj','.\MHW - Reshade Injector Helper\Properties\AssemblyInfo.cs')
+          foreach($p in $paths){$c=Get-Content $p -Raw;$c=$c.Replace('6.8.0',$v);Set-Content $p $c -Encoding UTF8}
+      - if: steps.version.outputs.skip != 'true'
+        uses: NuGet/setup-nuget@v2
+      - if: steps.version.outputs.skip != 'true'
+        uses: microsoft/setup-msbuild@v2
+      - name: Restore and build
+        if: steps.version.outputs.skip != 'true'
+        shell: pwsh
+        run: |
+          nuget restore ".\MHW - Reshade Injector Helper.sln" -NonInteractive
+          msbuild ".\MHW - Reshade Injector Helper.sln" /m /p:Configuration=Release /p:Platform=x64
+      - name: Test and package
+        if: steps.version.outputs.skip != 'true'
+        id: package
+        shell: pwsh
+        run: |
+          $v="${{ steps.version.outputs.version }}";$root=Join-Path $PWD artifacts;$name="MHW-ReShade-Injector-Helper-$v-portable";$dir=Join-Path $root $name
+          New-Item -ItemType Directory $dir -Force|Out-Null
+          Copy-Item ".\MHW - Reshade Injector Helper\bin\x64\Release\*" $dir -Recurse -Force
+          Copy-Item .\README.md,.\CHANGELOG.md,.\BUILD-INFO.txt,.\VERIFICATION.md,.\LICENSE,.\NOTICE.md $dir -Force
+          Copy-Item .\LICENSES $dir -Recurse -Force
+          .\scripts\Test-Package.ps1 $dir $v
+          $zip=Join-Path $root "$name.zip";Compress-Archive (Join-Path $dir '*') $zip -Force
+          $sum=Join-Path $root SHA256SUMS.txt;"$((Get-FileHash $zip -Algorithm SHA256).Hash.ToLower())  $name.zip"|Set-Content $sum -Encoding ascii
+          "zip=$zip">>$env:GITHUB_OUTPUT;"sum=$sum">>$env:GITHUB_OUTPUT;"name=$name">>$env:GITHUB_OUTPUT
+      - name: Upload checked artifact
+        if: steps.version.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: |
+            ${{ steps.package.outputs.zip }}
+            ${{ steps.package.outputs.sum }}
+      - name: Publish release
+        if: steps.version.outputs.skip != 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v="${{ steps.version.outputs.version }}";$notes="Automated official ReShade $v build. CI verified version and signer, built x64, tested package contents, and bundled no shaders. See NOTICE.md."
+          gh release create "${{ steps.version.outputs.tag }}" "${{ steps.package.outputs.zip }}" "${{ steps.package.outputs.sum }}" --repo $env:GITHUB_REPOSITORY --target "${{ github.sha }}" --title "MHW ReShade Injector Helper - ReShade $v" --notes $notes

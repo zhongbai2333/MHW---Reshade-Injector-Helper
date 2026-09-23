@@ -1,6 +1,7 @@
-
 MHW - Reshade Injector Helper/bin/
-
 MHW - Reshade Injector Helper/obj/
-
+MHW - Reshade Injector Helper/ReShade64.dll
+MHW - Reshade Injector Helper/ReShade_Setup_*.exe
+MHW - Reshade Injector Helper/*.csproj.user
 .vs/
+artifacts/

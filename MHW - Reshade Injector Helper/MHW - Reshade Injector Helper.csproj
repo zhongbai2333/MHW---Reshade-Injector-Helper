@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>MHW___Reshade_Injector_Helper</RootNamespace>
     <AssemblyName>MHW - Reshade Injector Helper</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
@@ -92,12 +92,16 @@
     <Compile Include="Constants\Ini_CVs.cs" />
     <Compile Include="Helpers\ByteSearchHelper.cs" />
     <Compile Include="Helpers\CloseWindowHelper.cs" />
+    <Compile Include="Helpers\DlssCompatibilityHelper.cs" />
     <Compile Include="Helpers\ErrorLogHelper.cs" />
+    <Compile Include="Helpers\GameLocatorHelper.cs" />
     <Compile Include="Helpers\IniHelper.cs" />
     <Compile Include="Helpers\MHWToolsHelper.cs" />
     <Compile Include="Helpers\OpenFileDialogHelper.cs" />
     <Compile Include="Helpers\ProcessHelper.cs" />
+    <Compile Include="Helpers\ReShadeConfigHelper.cs" />
     <Compile Include="Helpers\SaveManagerHelper.cs" />
+    <Compile Include="Helpers\ShaderInstallerHelper.cs" />
     <Compile Include="Helpers\ScreenshotHelper.cs" />
     <Compile Include="Helpers\WindowsMemoryHelper.cs" />
     <Compile Include="Models\AddressRange.cs" />
@@ -110,13 +114,16 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-    <None Include="ReShade.ini">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="inject.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Show Steam Launch Option.cmd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ReShade_Setup_6.8.0.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <None Include="ReShade64.dll">

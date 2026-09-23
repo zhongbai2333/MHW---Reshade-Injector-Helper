@@ -1,4 +1,4 @@
-﻿using MHW___Reshade_Injector_Helper.Constants;
+using MHW___Reshade_Injector_Helper.Constants;
 using MHW___Reshade_Injector_Helper.Helpers;
 using MHW___Reshade_Injector_Helper.Models;
 using System;
@@ -9,17 +9,17 @@ namespace MHW___Reshade_Injector_Helper
 {
     public class AspectRatioPatcher
     {
-        public void ApplyPatch(SettingsIni settings)
+        public bool ApplyPatch(SettingsIni settings)
         {
-            Console.WriteLine("Applying Patch.");
-
             var graphicsOptionsIni = new GraphicsOptionsINI(Path.Combine(settings.ApplicationFilePath, "graphics_option.ini"));
 
             if (graphicsOptionsIni.D3D12 || graphicsOptionsIni.DLSS)
             {
-                Console.WriteLine("ERROR: DirectX 12 and/or DLSS detected. These are not supported. Please disable them and restart the game.");
-                return;
+                Console.WriteLine("Aspect-ratio patch skipped: it is not supported with DirectX 12 or DLSS.");
+                return false;
             }
+
+            Console.WriteLine("Applying optional aspect-ratio patch.");
 
             //if (graphicsOptionsIni.AspectRatio == General_CVs.OFF)
             //{
@@ -48,7 +48,7 @@ namespace MHW___Reshade_Injector_Helper
             catch (Exception ex)
             {
                 ErrorLogHelper.Log("WINDOWS ERROR: GetProcessByName critical error.", ex);
-                return;
+                return false;
             }
 
             ulong baseAddress;
@@ -62,7 +62,7 @@ namespace MHW___Reshade_Injector_Helper
                     {
                         var error = $"Search target = {searchTargetFinal.Bytes} graphics_option.ini | Resolution = " + graphicsOptionsIni.ResolutionX.ToString() + "x" + graphicsOptionsIni.ResolutionY.ToString() + " Aspect Ratio = " + graphicsOptionsIni.AspectRatio + " Address range | " + settings.AddressRangeStart + " ==> " + settings.AddressRangeEnd;
                         ErrorLogHelper.Log(error);
-                        return;
+                        return false;
                     }
                 }
 
@@ -81,7 +81,7 @@ namespace MHW___Reshade_Injector_Helper
                 catch (Exception ex)
                 {
                     ErrorLogHelper.Log("ERROR: Failed to write to memory for new Resolution arrays.", ex);
-                    return;
+                    return false;
                 }        
 
                 byte[] hudAspectRatioSearchTargetArray = new byte[] { 0x1F, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x33, 0x33, 0x73, 0x3F, 0x00, 0x00, 0x80, 0x3E, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 };
@@ -97,7 +97,7 @@ namespace MHW___Reshade_Injector_Helper
                     {
                         var error = $"Search target = {hudAspectRatioSearchFinal.Bytes} graphics_option.ini | Resolution = " + graphicsOptionsIni.ResolutionX.ToString() + "x" + graphicsOptionsIni.ResolutionY.ToString() + " Aspect Ratio = " + graphicsOptionsIni.AspectRatio + " Address range | " + hudAspectRatioSearchFinal.AddressRange.Start + " ==> " + hudAspectRatioSearchFinal.AddressRange.End;
                         ErrorLogHelper.Log(error);
-                        return;
+                        return false;
                     }
                 }
 
@@ -118,7 +118,7 @@ namespace MHW___Reshade_Injector_Helper
                 catch (Exception ex)
                 {
                     ErrorLogHelper.Log("ERROR: Failed to write to memory for new HUD aspect ratio.", ex);
-                    return;
+                    return false;
                 }
 
                 baseAddress += 983178308;
@@ -139,11 +139,15 @@ namespace MHW___Reshade_Injector_Helper
                 catch (Exception ex)
                 {
                     ErrorLogHelper.Log("ERROR: Failed to write to memory for userSlider.", ex);
+                    return false;
                 }
+
+                return true;
             }
             catch (Exception ex)
             {
                 ErrorLogHelper.Log("ERROR: Testing/finding base address.", ex);
+                return false;
             }
         }
     }
