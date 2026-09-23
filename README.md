@@ -1,109 +1,121 @@
-# MHW ReShade Injector Helper 6.8.0
+# MHW ReShade Injector Helper
 
-这是基于 [keegars/MHW---Reshade-Injector-Helper](https://github.com/keegars/MHW---Reshade-Injector-Helper) 的兼容性更新版，用于《Monster Hunter: World》15.10.00 后无法从游戏目录直接加载 DXGI/D3D12 代理 DLL 的情况。
+[简体中文](README.zh-CN.md)
 
-## 新版工作流程
+A Windows launcher for using current ReShade releases with *Monster Hunter: World*. This repository is maintained as a fork of [keegars/MHW---Reshade-Injector-Helper](https://github.com/keegars/MHW---Reshade-Injector-Helper).
 
-1. 助手先自动寻找 `MonsterHunterWorld.exe`。
-2. 如果游戏目录没有 `reshade-shaders\Shaders`，助手会启动随包附带的官方 `ReShade_Setup_6.8.0.exe`。
-3. 官方安装器负责把 shader、texture、preset 和图形 API 代理安装到游戏目录。
-4. 助手修正游戏目录中 `ReShade.ini` 的 shader/texture 绝对路径。
-5. `inject.exe` 使用助手旁边附带的官方 `ReShade64.dll` 6.8.0 注入游戏，然后通过 Steam 启动游戏。
-6. 检测到游戏进程并留出 5 秒显示注入结果后，助手窗口自动隐藏；游戏退出时助手自动完成清理并退出，不会再结束游戏进程。
+## What it does
 
-如果需要观察完整控制台，可给助手增加 `--no-hide` 参数。
+- Locates `MonsterHunterWorld.exe` from registered Steam libraries, with a file picker as fallback.
+- Starts the official ReShade installer when the game has no shader effects installed.
+- Loads shaders and textures from the game's own `reshade-shaders` directory.
+- Repairs ReShade search paths and preserves the last valid preset.
+- Starts the injector before launching the game through Steam.
+- Hides the helper window after startup and exits cleanly when the game closes.
+- Can be configured as the game's Steam launch command.
 
-## DX12 与替换版 DLSS DLL 的崩溃保护
+The portable release includes the verified official ReShade installer and `ReShade64.dll`. Shader packages are not bundled; select the packages you want in the official installer.
 
-如果助手检测到已确认会在本机崩溃的 DLSS `1.3.2.0`，并且游戏使用 DX12、游戏设置中的 `NVIDIA DLSS` 明确为 `Off`，会在本次运行期间把游戏目录中的 `nvngx_dlss.dll` 临时改名，退出助手时自动恢复。这样不会覆盖或删除玩家替换的文件。原版 `1.1.13` 和已验证能够启动的 `1.2.14` 均不会执行该处理，以便玩家在游戏内启用 DLSS。
+## Requirements
 
-- DLSS 为 `On` 时，助手绝不会移动该 DLL。
-- 助手若被强制结束，下次运行会识别 `.reshade-helper-disabled` 临时文件并继续保护或恢复。
-- 若要使用 DLSS，请先确认所换 DLL 与《怪物猎人：世界》的旧版 NGX/DLSS 接口兼容；NVIDIA 只明确保证替换 DLL 对 DLSS 2.x SDK 的兼容性，并不覆盖这款游戏的 DLSS 1.x 集成。
+- Windows 10 or 11, 64-bit
+- Steam version of *Monster Hunter: World*
+- .NET Framework 4.8
+- Administrator permission when requested
 
-## 中文界面显示为问号
+The legacy aspect-ratio memory patch is disabled by default. It is experimental, intended only for DX11, and is not compatible with DX12 or DLSS.
 
-官方安装器生成的旧配置可能把主界面字体固定为 `ProggyClean.ttf`。该字体没有中文字形，而 ReShade 6.8 会根据 Windows 语言自动显示中文，因此界面文字会变成问号。助手会把这一旧的主界面字体设置恢复为自动选择，让 ReShade 使用系统的微软雅黑或微软正黑体；shader 名称和代码编辑器字体不受影响。
+## Download
 
-## 自动恢复上次使用的预设
+Download the latest portable archive from [GitHub Releases](https://github.com/zhongbai2333/MHW---Reshade-Injector-Helper/releases). Do not download GitHub's automatically generated source archive unless you intend to build the project yourself.
 
-ReShade 会把最后选择的预设写入游戏目录的 `ReShade.ini`，通常是类似 `PresetPath=.\My Preset.ini` 的相对路径。助手会以游戏目录为基准解析该路径并原样保留选择，不再在每次启动时重置为空的 `ReShadePreset.ini`。预设文件名包含空格或撇号也受支持。
+Each automated release also contains `SHA256SUMS.txt`.
 
-发行包不再内置标准 shader；所有 shader/texture 都由 ReShade 官方安装器下载并安装。`ReShade64.dll` 必须继续与 `inject.exe` 放在一起，因为官方安装器在游戏目录中使用的是 `dxgi.dll` 等代理名称，而注入器需要明确的 `ReShade64.dll`。
+## First run
 
-## 自动寻找游戏的位置
+1. Extract the entire portable archive to a permanent folder.
+2. Run `MHW - Reshade Injector Helper.exe`.
+3. The helper searches your Steam libraries for the game. If it cannot find the game, select `MonsterHunterWorld.exe` manually.
+4. If the official ReShade installer opens, choose DirectX 10/11/12 and install at least one shader package.
+5. Close the installer when it finishes. The helper verifies the shader installation, prepares injection, and launches the game through Steam.
 
-首次启动会按以下顺序扫描：
+Keep the helper executable, `inject.exe`, `ReShade64.dll`, the ReShade setup executable, and the dependency DLLs together in the extracted folder.
 
-- 当前用户与本机注册表中的 Steam 安装目录。
-- Steam 的 `libraryfolders.vdf` 中记录的全部库目录。
-- 各固定磁盘根目录下常见的 `Steam`、`SteamLibrary`、`Games\Steam`、`Games\SteamLibrary`。
-- 对应库中的 `appmanifest_582010.acf` 和标准游戏目录。
+## Start automatically from Steam
 
-扫描全部失败后才会弹出文件选择框。检测到游戏后会在控制台显示完整路径。
+1. Run the helper normally once so it can save a valid game path.
+2. Run `Show Steam Launch Option.cmd`.
+3. Copy the displayed command into **Steam → Monster Hunter: World → Properties → Launch Options**.
+4. Launch the game from Steam as usual.
 
-## 取消选择后可以再次尝试
+If Steam enters a launch loop after an update or after moving the helper folder, clear the custom launch option and run the helper directly again.
 
-配置现在只会在找到有效游戏 EXE 后保存。第一次手动选择时即使点击取消，也不会再留下损坏的空 INI。旧版本已经留下的空配置、字段残缺配置或游戏路径失效配置，也会在下次启动时自动重新进入扫描/选择流程。
+## Command-line options
 
-## 使用方法
+| Option | Purpose |
+| --- | --- |
+| `--no-hide` | Keep the helper console visible while the game is running. |
+| `--prepare-only "<game.exe>"` | Prepare ReShade without launching the game. |
+| `--enable-aspect-patch` | Enable the legacy experimental DX11 aspect-ratio patch. |
+| `--show-steam-option` | Print the Steam launch command. |
 
-1. 解压完整压缩包，不要只复制 EXE。
-2. 双击 `MHW - Reshade Injector Helper.exe` 并接受管理员权限提示。
-3. 等待自动扫描；扫描失败时再手动选择 `MonsterHunterWorld.exe`。
-4. 如果官方 ReShade 安装器自动出现：选择游戏使用的 DirectX 10/11/12，并至少选择一个 shader 包，完成后关闭安装器。
-5. 助手检测到游戏目录中的 `.fx` 文件后，会继续启动注入器和 Steam 游戏。
-6. 进入游戏打开 ReShade；效果会从游戏目录的 `reshade-shaders` 文件夹加载。
-
-## 从 Steam 的“开始游戏”自动运行助手
-
-无需制作游戏 MOD。ReShade 需要在 DX12 图形设备创建前注入，因此使用 Steam 启动参数比游戏加载后的 MOD 更可靠：
-
-1. 把本工具解压到一个不会再移动的固定目录，并先正常运行一次完成配置。
-2. 双击 `Show Steam Launch Option.cmd`，复制窗口显示的完整启动参数。
-3. 在 Steam 库中右键《Monster Hunter: World》→“属性”→“启动选项”，粘贴该参数。
-4. 以后直接点击 Steam 的“开始游戏”即可；Steam 会先运行助手，助手准备注入后再启动真正的游戏。
-
-若 Steam 客户端或游戏更新后出现启动循环，请先清空该启动选项，再直接运行助手。Steam 模式也会在游戏启动后自动隐藏窗口。
-
-## 16:10、超宽屏与旧比例补丁
-
-原项目包含一个通过修改游戏进程内存强制分辨率和 HUD 比例的旧补丁。它不属于 ReShade，仅支持 DX11，并且不支持 DX12/DLSS。新版默认完全关闭该功能，避免在正常注入后显示误导性错误或改写过期内存地址。
-
-确实需要在 DX11 下实验时，可添加 `--enable-aspect-patch` 参数；使用风险由玩家自行承担。对于 DX12 + DLSS，建议使用游戏官方支持的 2560×1440 或 3840×2160 全屏分辨率。
-
-不要删除或移动：
-
-- `ReShade64.dll`
-- `ReShade_Setup_6.8.0.exe`
-- `inject.exe`
-- EXE 旁边的依赖 DLL
-
-## 从旧版迁移
-
-建议将新版解压到独立文件夹。旧 preset 可以继续留在游戏目录。若旧助手记录了错误路径，无需手动清理；新版会检测路径失效并重新扫描。也可以删除助手 EXE 同名的 `.ini`，强制重新初始化。
-
-## 仅准备环境，不启动游戏
+Example:
 
 ```text
 "MHW - Reshade Injector Helper.exe" --prepare-only "D:\SteamLibrary\steamapps\common\Monster Hunter World\MonsterHunterWorld.exe"
 ```
 
-该模式仍会在缺少 shader 时启动官方安装器，但准备完成后不会启动游戏。
+## Troubleshooting
 
-## 来源
+### ReShade opens but the effect list is empty
 
-- 原项目：[keegars/MHW---Reshade-Injector-Helper](https://github.com/keegars/MHW---Reshade-Injector-Helper)
-- ReShade 6.8.0：[crosire/reshade v6.8.0](https://github.com/crosire/reshade/releases/tag/v6.8.0)
-- 官方 shader 索引：[crosire/reshade-shaders](https://github.com/crosire/reshade-shaders)
+Run the helper again. When the official installer opens, install at least one shader package. Effects must exist under:
 
-ReShade、安装器和 shader 仍由各自原作者按其许可证发布。
+```text
+<game directory>\reshade-shaders\Shaders
+```
 
+### The game path picker was cancelled
 
-## 自动跟随 ReShade 更新
+Run the helper again. A cancelled selection is not saved, so the automatic scan and picker will be available on the next launch.
 
-GitHub Actions 每天检查 ReShade 官方稳定版标签。发现新版本后，会从 reshade.me 下载官方安装器，验证安装器和 ReShade64.dll 的版本与数字签名，编译 x64 Release，执行包完整性检查，生成 SHA-256 并创建 reshade-vX.Y.Z Release。源码仓库不提交 ReShade 安装器或 DLL，也不内置 shader 包。
+### The game crashes after replacing the DLSS DLL
 
-## 许可证说明
+Restore the original or a known-compatible DLSS DLL before testing ReShade again. This game's DLSS 1.x integration is not guaranteed to work with DLLs intended for newer DLSS generations.
 
-本 fork 新增的修改以 MIT 许可证发布。上游仓库目前没有声明许可证，所以 MIT 不会重授权上游文件；详情见 NOTICE.md。ReShade 使用 BSD 3-Clause，完整文本在 LICENSES/ReShade-BSD-3-Clause.txt。
+The helper contains a narrow safety workaround for the known-problematic `1.3.2.0` DLL when DX12 is enabled and in-game DLSS is explicitly disabled. It does not claim general compatibility for arbitrary replacement DLLs.
+
+### A preset is not restored
+
+Make sure the preset file still exists. Relative preset paths are resolved from the game directory, and the last valid preset is preserved.
+
+### More details are needed
+
+Check `ErrorLog.txt` next to the helper executable.
+
+## Automated ReShade releases
+
+The scheduled GitHub Actions workflow checks the official stable ReShade tags every day. When a new stable version is found, it:
+
+1. Downloads the matching installer from `reshade.me`.
+2. Verifies the installer version and ReShade Authenticode signer.
+3. Extracts and verifies `ReShade64.dll`.
+4. Builds the helper for Release/x64.
+5. Checks required files and confirms that no shader package is bundled.
+6. Publishes a versioned portable archive and SHA-256 checksum.
+
+ReShade installers and DLLs are fetched only during release builds and are not committed to the source repository.
+
+## Building from source
+
+Open `MHW - Reshade Injector Helper.sln` in Visual Studio with the .NET Framework 4.8 developer tools installed. Restore the NuGet packages and build the `Release|x64` configuration.
+
+A local build also needs matching official `ReShade_Setup_X.Y.Z.exe` and `ReShade64.dll` files in the project directory. The automated workflow prepares these files for release builds.
+
+## Credits and licenses
+
+- Original project: [keegars/MHW---Reshade-Injector-Helper](https://github.com/keegars/MHW---Reshade-Injector-Helper)
+- ReShade: [crosire/reshade](https://github.com/crosire/reshade)
+- Official shader repository: [crosire/reshade-shaders](https://github.com/crosire/reshade-shaders)
+
+Changes first added by this fork are available under the MIT License. The upstream repository currently does not include a license grant, so the MIT License does not relicense upstream material. ReShade is distributed under BSD 3-Clause. See [NOTICE.md](NOTICE.md) and the [included license texts](LICENSES) for details.
